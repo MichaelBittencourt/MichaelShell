@@ -5,6 +5,6 @@
 #define TRUE 1
 #define FALSE 0
 
-void runMShell(boolean paralelo);
+int runMShell(boolean paralelo);
 
 #endif
