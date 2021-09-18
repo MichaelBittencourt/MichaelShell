@@ -9,22 +9,26 @@
  *     * Caso contrário a gente tenta localizar o binário e executar ele.
  *   - repete até digitar exit
  */
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include<cstdio>
+#include<cstdlib>
+#include<cstring>
+#include<string>
 #include"mshell.h"
 
+using namespace std;
+
 int main(int argc, char *argv[]) {
-    boolean paralelo = FALSE;
+    bool paralelo = false;
+    MShell msh;
     if (argc > 1) {
         for (int i = 1; i < argc; i++) {
             if (strcmp("-p", argv[i]) == 0 || strcmp("--paralelo", argv[i]) == 0) {
-                paralelo = TRUE;
+                paralelo = true;
             } else {
                 printf("Wrong Param: %s\n", argv[i]);
                 exit(1);
             }
         }
     }
-    return runMShell(paralelo);
+    return msh.run();
 }

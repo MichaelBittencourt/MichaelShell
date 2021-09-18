@@ -1,13 +1,27 @@
-all: msh
+###############Compiler###############
+CC=g++
 
-main.o: main.c
-	gcc -c $< -o $@
+##############Flags###################
+LD_FLAGS=-std=c++11
+FILE_SYSTEM_FLAGS=-lstdc++fs
+FLAGS=$(LD_FLAGS) $(FILE_SYSTEM_FLAGS)
+INCLUDE=-I$(shell pwd)
 
-mshell.o: mshell.c
-	gcc -c $< -o $@
+#############Files###################
+SRC=$(wildcard *.cpp)
+OBJ=$(SRC:.cpp=.o)
+BIN=msh
 
-msh: main.o mshell.o
-	gcc $^ -o $@
+################Tasks################
+all: $(BIN)
+
+%.o: %.cpp
+	$(CC) -c $< -o $@ $(FLAGS) $(INCLUDE)
+
+$(BIN): $(OBJ)
+	$(CC) $^ -o $@  $(FLAGS) $(INCLUDE)
 
 clean:
-	rm main.o mshell.o msh
+	rm $(OBJ) $(BIN)
+
+.PHONY: all clean
