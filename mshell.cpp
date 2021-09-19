@@ -1,10 +1,12 @@
 #include "mshell.h"
 #include <unistd.h>
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <iostream>
 #include <limits.h>
 #include <map>
+#include <sys/wait.h>
 
 using namespace std;
 
@@ -20,6 +22,8 @@ using namespace std;
 
 #define ERROR_WHEN_READ_INPUT 3
 #define INTERN_COMMAND_NOT_FOUND 4
+#define EMPTY_COMMAND 5
+
 
 MShell::MShell() : 
     parallel(false),
@@ -66,17 +70,66 @@ ostream& operator<<(ostream& os, const MShell& mshell)
 
 int MShell::runIntern(string command) {
     //cout << endl << "Running Intert command: " << command;
-    map<string, InternCommand>::iterator it = internCommands.find(command);
-    if (it != internCommands.end()) {
-        vector<string> params;
-        InternCommand func = it->second;
-        return (this->*func)(params);
+    vector<string> params = separateArgs(command);
+    if (params.size() > 0) {
+        map<string, InternCommand>::iterator it = internCommands.find(params[0]);
+        if (it != internCommands.end()) {
+            InternCommand func = it->second;
+            return (this->*func)(params);
+        }
+        return INTERN_COMMAND_NOT_FOUND;
     }
-    return INTERN_COMMAND_NOT_FOUND;
+    return EMPTY_COMMAND;
+}
+
+char ** MShell::convertToArgv(vector<string> params) {
+    char ** ret = new char*[params.size()+1];
+    for(int i = 0; i < params.size(); i++) {
+        ret[i] = new char[params[i].size()+1];
+        strcpy(ret[i], params[i].c_str());
+    }
+    ret[params.size()] = nullptr;
+}
+
+char ** MShell::getEnv() {
+
+    char ** ret;
+
+    vector<string> tokenized;
+    stringstream path;
+    string singlePath;
+    path << variables["PATH"];
+
+    while(getline(path, singlePath, ':')) {
+        tokenized.push_back(singlePath);
+    }
+    ret = convertToArgv(tokenized);
+    return ret;
 }
 
 int MShell::runBinary(string command) {
-    cout << endl << "Running binary: " << command;;
+    pid_t pid = fork();
+    if (pid == 0) {
+        vector<string> params = separateArgs(command);
+        if (params.size() > 0) {
+            for (int i = 0; i < params.size(); i++ ) {
+                cout << "params[" << i << "]: " << params[i] << endl;
+            }
+            char ** argv = convertToArgv(params);
+            char ** env = getEnv();
+            exit(execve(argv[0], argv, env));
+        } else {
+            exit(EMPTY_COMMAND);
+        }
+    } else {
+        int ret;
+        wait(&ret);
+#ifdef DEBUG
+        cout << "When finish Proccess: " << WEXITSTATUS(ret) << endl;
+#endif
+        return WEXITSTATUS(ret);
+    }
+
     return 0;
 }
 
@@ -89,8 +142,14 @@ int MShell::runCommand(string command) {
 
     while(getline(commandStream, intermediateCommand, ';')) {
         ret = this->runIntern(intermediateCommand);
+#ifdef DEBUG
+        cout << "Returnt intern: " << ret << endl;;
+#endif
         if (ret) {
             ret = this->runBinary(intermediateCommand);
+#ifdef DEBUG
+        cout << "Return binary: " << ret << endl;;
+#endif
         }
     }
     return ret;
@@ -109,11 +168,16 @@ int MShell::run() {
             break;
         }
     } while (input != "exit");
+#ifdef DEBUG
     cout << (*this) << endl;
+#endif
     return ret;
 }
 
 int MShell::chdir(vector<string> args) {
+    for (int i = 0; i < args.size(); i++) {
+        cout << "args[" << i << "]: " << args[i] << endl;
+    }
     return 0;
 }
 
@@ -123,3 +187,15 @@ int MShell::pwd(vector<string> args) {
 }
 
 MShell::~MShell() { }
+
+vector<string> MShell::separateArgs(string command) {
+    vector<string> args;
+    stringstream commandStream;
+    commandStream << command;
+    string arg;
+    do {
+        commandStream >> arg;
+        args.push_back(arg);
+    } while(!commandStream.eof());
+    return args;
+}

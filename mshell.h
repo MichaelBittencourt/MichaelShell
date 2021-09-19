@@ -34,6 +34,9 @@ class MShell {
         int runBinary(string command);
         int runCommand(string command);
         string getVariable(string variable);
+        vector<string> separateArgs(string command);
+        char ** convertToArgv(vector<string> params);
+        char ** getEnv();
 
 };
 
