@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <map>
 #include <sys/wait.h>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -24,12 +25,19 @@ using namespace std;
 #define INTERN_COMMAND_NOT_FOUND 4
 #define EMPTY_COMMAND 5
 
+inline bool fileExists (const string& completePath) {
+  struct stat buffer;   
+  return (stat (completePath.c_str(), &buffer) == 0); 
+}
 
 MShell::MShell() : 
     parallel(false),
+    command_enable(false),
+    file_enable(false),
     lastReturn(0)
 {
-    variables["PATH"] = "/bin/";
+    variables["PATH"] = "/home/michael/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/opt/local/bin:/usr/texbin:/usr/local/android-studio/bin:/home/michael/gitProjects/LogAnnalyse/LogAnnalyse:/home/michael/gitProjects/plotCPUStatus:/etc/vysor-3.1.4/:/home/michael/gitProjects/LogAnnalyse/:/home/michael/gitProjects/LogAnnalyse/WebRequests";
+    //variables["PATH"] = "/bin/:/usr/local/bin/";
     variables["PS1"] = "$> ";
 #if __cplusplus > 201402L 
     variables["PWD"] = std::filesystem::current_path();
@@ -89,6 +97,7 @@ char ** MShell::convertToArgv(vector<string> params) {
         strcpy(ret[i], params[i].c_str());
     }
     ret[params.size()] = nullptr;
+    return ret;
 }
 
 char ** MShell::getEnv() {
@@ -104,6 +113,11 @@ char ** MShell::getEnv() {
         tokenized.push_back(singlePath);
     }
     ret = convertToArgv(tokenized);
+#ifdef DEBUG
+    for ( int i = 0; ret[i] != nullptr; i++) {
+        cout << "EnvRet[" << i << "]: " << ret[i] << endl;
+    }
+#endif
     return ret;
 }
 
@@ -112,11 +126,36 @@ int MShell::runBinary(string command) {
     if (pid == 0) {
         vector<string> params = separateArgs(command);
         if (params.size() > 0) {
+#ifdef DEBUG
             for (int i = 0; i < params.size(); i++ ) {
                 cout << "params[" << i << "]: " << params[i] << endl;
             }
+#endif
             char ** argv = convertToArgv(params);
+            //char *argv[] = {"/bin/echo", "echo", "testando", "1234", nullptr};
             char ** env = getEnv();
+            //exit(execve(argv[0], argv, env));
+#ifdef DEBUG
+            for (int i = 0; i < params.size(); i++ ) {
+                cout << "argv[" << i << "]: " << argv[i] << endl;
+            }
+#endif
+            for (int i = 0; env[i] != nullptr; i++) {
+                string completePath = env[i];
+                if (completePath[completePath.size()-1] != '/') {
+                    completePath += "/";
+                }
+                completePath += argv[0];
+#ifdef DEBUG
+                cout << "Env[" << i << "]: " << env[i] << endl;
+                cout << "CompletePath: " << completePath << endl;
+                cout << "FileExists: " << fileExists(completePath) << endl;
+#endif
+                if (fileExists(completePath)) {
+                    //argv = &(argv[1]);
+                    exit(execve(completePath.c_str(), argv, env));
+                }
+            }
             exit(execve(argv[0], argv, env));
         } else {
             exit(EMPTY_COMMAND);

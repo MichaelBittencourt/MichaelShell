@@ -18,7 +18,11 @@ class MShell {
         ~MShell();
         int run();
         void enableParallel();
+        void enableCommand();
+        void enableFile();
         void disableParallel();
+        void disableCommand();
+        void disableFile();
         friend ostream& operator<<(ostream& os, const MShell& mshell);
 
     private:
@@ -26,6 +30,10 @@ class MShell {
         map<string, string> variables;
         map<string, InternCommand> internCommands;
         bool parallel;
+        bool command_enable;
+        bool file_enable;
+        string file;
+        string command;
         int lastReturn;
         void showPrompt();
         int chdir(vector<string> args);
