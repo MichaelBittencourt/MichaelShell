@@ -23,12 +23,15 @@ class MShell {
         void disableParallel();
         void disableCommand();
         void disableFile();
+        void setEnv(char ** env);
+        char ** getEnv();
         friend ostream& operator<<(ostream& os, const MShell& mshell);
 
     private:
 
         map<string, string> variables;
         map<string, InternCommand> internCommands;
+        char ** environ = nullptr;
         bool parallel;
         bool command_enable;
         bool file_enable;
@@ -44,8 +47,6 @@ class MShell {
         string getVariable(string variable);
         vector<string> separateArgs(string command);
         char ** convertToArgv(vector<string> params);
-        char ** getEnv();
-
 };
 
 #endif

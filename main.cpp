@@ -32,11 +32,17 @@ void showVersion() {
     printf("Version: %s\n", VERSION);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[], char **envp) {
     bool parallel = false;
     bool command = false;
     bool file = false;
+#ifdef DEBUG
+    for(int i = 0; envp[i] != nullptr; i++) {
+        printf("envp[%d]: %s\n", i, envp[i]);
+    }
+#endif
     MShell msh;
+    msh.setEnv(envp);
     if (argc > 1) {
         for (int i = 1; i < argc; i++) {
             if (strcmp("-p", argv[i]) == 0 || strcmp("--parallel", argv[i]) == 0) {

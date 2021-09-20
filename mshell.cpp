@@ -134,7 +134,7 @@ int MShell::runBinary(string command) {
             char ** argv = convertToArgv(params);
             //char *argv[] = {"/bin/echo", "echo", "testando", "1234", nullptr};
             char ** env = getEnv();
-            //exit(execve(argv[0], argv, env));
+            //exit(execve(argv[0], argv, this->environ));
 #ifdef DEBUG
             for (int i = 0; i < params.size(); i++ ) {
                 cout << "argv[" << i << "]: " << argv[i] << endl;
@@ -153,10 +153,10 @@ int MShell::runBinary(string command) {
 #endif
                 if (fileExists(completePath)) {
                     //argv = &(argv[1]);
-                    exit(execve(completePath.c_str(), argv, env));
+                    exit(execve(completePath.c_str(), argv, this->environ));
                 }
             }
-            exit(execve(argv[0], argv, env));
+            exit(execve(argv[0], argv, this->environ));
         } else {
             exit(EMPTY_COMMAND);
         }
@@ -237,4 +237,8 @@ vector<string> MShell::separateArgs(string command) {
         args.push_back(arg);
     } while(!commandStream.eof());
     return args;
+}
+
+void MShell::setEnv(char ** env) {
+    this->environ = env;
 }
