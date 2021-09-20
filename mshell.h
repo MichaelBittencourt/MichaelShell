@@ -39,7 +39,7 @@ class MShell {
         string command;
         int lastReturn;
         void showPrompt();
-        int chdir(vector<string> args);
+        int cd(vector<string> args);
         int pwd(vector<string> args);
         int runIntern(string command);
         int runBinary(string command);
@@ -47,6 +47,7 @@ class MShell {
         string getVariable(string variable);
         vector<string> separateArgs(string command);
         char ** convertToArgv(vector<string> params);
+        vector<string> serializePath();
 };
 
 #endif

@@ -24,6 +24,7 @@ using namespace std;
 #define ERROR_WHEN_READ_INPUT 3
 #define INTERN_COMMAND_NOT_FOUND 4
 #define EMPTY_COMMAND 5
+#define INVALID_CD_PARAMS 6
 
 inline bool fileExists (const string& completePath) {
   struct stat buffer;   
@@ -49,7 +50,7 @@ MShell::MShell() :
     string cpppwd(pwd);
     variables["PWD"] = pwd;
 #endif
-    internCommands["cd"] = &MShell::chdir;
+    internCommands["cd"] = &MShell::cd;
     internCommands["pwd"] = &MShell::pwd;
 }
 
@@ -100,10 +101,7 @@ char ** MShell::convertToArgv(vector<string> params) {
     return ret;
 }
 
-char ** MShell::getEnv() {
-
-    char ** ret;
-
+vector<string> MShell::serializePath() {
     vector<string> tokenized;
     stringstream path;
     string singlePath;
@@ -112,13 +110,7 @@ char ** MShell::getEnv() {
     while(getline(path, singlePath, ':')) {
         tokenized.push_back(singlePath);
     }
-    ret = convertToArgv(tokenized);
-#ifdef DEBUG
-    for ( int i = 0; ret[i] != nullptr; i++) {
-        cout << "EnvRet[" << i << "]: " << ret[i] << endl;
-    }
-#endif
-    return ret;
+    return tokenized;
 }
 
 int MShell::runBinary(string command) {
@@ -133,30 +125,29 @@ int MShell::runBinary(string command) {
 #endif
             char ** argv = convertToArgv(params);
             //char *argv[] = {"/bin/echo", "echo", "testando", "1234", nullptr};
-            char ** env = getEnv();
+            vector<string> pathSerialized = serializePath();
             //exit(execve(argv[0], argv, this->environ));
 #ifdef DEBUG
             for (int i = 0; i < params.size(); i++ ) {
                 cout << "argv[" << i << "]: " << argv[i] << endl;
             }
 #endif
-            for (int i = 0; env[i] != nullptr; i++) {
-                string completePath = env[i];
+            for (int i = 0; i < pathSerialized.size(); i++) {
+                string completePath = pathSerialized[i];
                 if (completePath[completePath.size()-1] != '/') {
                     completePath += "/";
                 }
                 completePath += argv[0];
 #ifdef DEBUG
-                cout << "Env[" << i << "]: " << env[i] << endl;
+                cout << "SerializedPath[" << i << "]: " << pathSerialized[i] << endl;
                 cout << "CompletePath: " << completePath << endl;
                 cout << "FileExists: " << fileExists(completePath) << endl;
 #endif
                 if (fileExists(completePath)) {
-                    //argv = &(argv[1]);
-                    exit(execve(completePath.c_str(), argv, this->environ));
+                    exit(execve(completePath.c_str(), argv, getEnv()));
                 }
             }
-            exit(execve(argv[0], argv, this->environ));
+            exit(execve(argv[0], argv, getEnv()));
         } else {
             exit(EMPTY_COMMAND);
         }
@@ -213,9 +204,12 @@ int MShell::run() {
     return ret;
 }
 
-int MShell::chdir(vector<string> args) {
-    for (int i = 0; i < args.size(); i++) {
-        cout << "args[" << i << "]: " << args[i] << endl;
+int MShell::cd(vector<string> args) {
+    if (args.size() == 2) {
+        return chdir(args[1].c_str());
+    } else if (args.size() > 2) {
+        cerr << "Invalid params to change dir" << endl;
+        return INVALID_CD_PARAMS;
     }
     return 0;
 }
@@ -241,4 +235,8 @@ vector<string> MShell::separateArgs(string command) {
 
 void MShell::setEnv(char ** env) {
     this->environ = env;
+}
+
+char ** MShell::getEnv() { 
+    return this->environ;
 }
