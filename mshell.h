@@ -45,6 +45,7 @@ class MShell {
         int runBinary(string command);
         int runCommand(string command);
         string getVariable(string variable);
+        void setVariable(string variable, string value);
         vector<string> separateArgs(string command);
         char ** convertToArgv(vector<string> params);
         vector<string> serializePath();

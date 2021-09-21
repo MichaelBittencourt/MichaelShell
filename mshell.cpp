@@ -25,6 +25,7 @@ using namespace std;
 #define INTERN_COMMAND_NOT_FOUND 4
 #define EMPTY_COMMAND 5
 #define INVALID_CD_PARAMS 6
+#define COULD_NOT_RUN_BINARY 7
 
 inline bool fileExists (const string& completePath) {
   struct stat buffer;   
@@ -37,19 +38,14 @@ MShell::MShell() :
     file_enable(false),
     lastReturn(0)
 {
-    variables["PATH"] = "/home/michael/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/opt/local/bin:/usr/texbin:/usr/local/android-studio/bin:/home/michael/gitProjects/LogAnnalyse/LogAnnalyse:/home/michael/gitProjects/plotCPUStatus:/etc/vysor-3.1.4/:/home/michael/gitProjects/LogAnnalyse/:/home/michael/gitProjects/LogAnnalyse/WebRequests";
+    setVariable("PATH", "/home/michael/.local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/X11/bin:/opt/local/bin:/usr/texbin:/usr/local/android-studio/bin:/home/michael/gitProjects/LogAnnalyse/LogAnnalyse:/home/michael/gitProjects/plotCPUStatus:/etc/vysor-3.1.4/:/home/michael/gitProjects/LogAnnalyse/:/home/michael/gitProjects/LogAnnalyse/WebRequests");
     //variables["PATH"] = "/bin/:/usr/local/bin/";
-    variables["PS1"] = "$> ";
-#if __cplusplus > 201402L 
-    variables["PWD"] = std::filesystem::current_path();
-#else
-    char pwd[PATH_MAX+1];
-    if (getcwd(pwd, sizeof(pwd)) == NULL) {
-        exit(GET_CURRENT_PATH_ERROR);
+    setVariable("PS1", "$> ");
+    vector<string> pwdParams(1);
+    if (pwd(pwdParams)) {
+
     }
-    string cpppwd(pwd);
-    variables["PWD"] = pwd;
-#endif
+
     internCommands["cd"] = &MShell::cd;
     internCommands["pwd"] = &MShell::pwd;
 }
@@ -60,6 +56,10 @@ void MShell::showPrompt() {
 
 string MShell::getVariable(string variable) {
     return variables[variable];
+}
+
+void MShell::setVariable(string variable, string value) {
+    variables[variable] = value;
 }
 
 ostream& operator<<(ostream& os, const MShell& mshell)
@@ -147,7 +147,12 @@ int MShell::runBinary(string command) {
                     exit(execve(completePath.c_str(), argv, getEnv()));
                 }
             }
-            exit(execve(argv[0], argv, getEnv()));
+            if (fileExists(argv[0])) {
+                exit(execve(argv[0], argv, getEnv()));
+            } else {
+                cerr << "Couldn't run '" << argv[0] << "'" << endl;
+                exit(COULD_NOT_RUN_BINARY);
+            }
         } else {
             exit(EMPTY_COMMAND);
         }
@@ -173,12 +178,12 @@ int MShell::runCommand(string command) {
     while(getline(commandStream, intermediateCommand, ';')) {
         ret = this->runIntern(intermediateCommand);
 #ifdef DEBUG
-        cout << "Returnt intern: " << ret << endl;;
+        cout << "Returnt intern: " << ret << endl;
 #endif
         if (ret) {
             ret = this->runBinary(intermediateCommand);
 #ifdef DEBUG
-        cout << "Return binary: " << ret << endl;;
+        cout << "Return binary: " << ret << endl;
 #endif
         }
     }
@@ -206,7 +211,11 @@ int MShell::run() {
 
 int MShell::cd(vector<string> args) {
     if (args.size() == 2) {
-        return chdir(args[1].c_str());
+        int ret = chdir(args[1].c_str());
+        if (ret) {
+            cerr << "Couldn't change directory to " << args[1] << endl;
+        }
+        return ret;
     } else if (args.size() > 2) {
         cerr << "Invalid params to change dir" << endl;
         return INVALID_CD_PARAMS;
@@ -215,7 +224,19 @@ int MShell::cd(vector<string> args) {
 }
 
 int MShell::pwd(vector<string> args) {
-    cout << getVariable("PWD");
+#if __cplusplus > 201402L 
+    setVariable("PWD", std::filesystem::current_path());
+#else
+    char pwd[PATH_MAX+1];
+    if (getcwd(pwd, sizeof(pwd)) == NULL) {
+        exit(GET_CURRENT_PATH_ERROR);
+    }
+    string cpppwd(pwd);
+    setVariable("PWD", pwd);
+#endif
+    if (!args.empty() && args[0] == "pwd") {
+        cout << getVariable("PWD");
+    }
     return 0;
 }
 
