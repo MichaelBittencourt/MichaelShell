@@ -144,11 +144,11 @@ int MShell::runBinary(string command) {
                 cout << "FileExists: " << fileExists(completePath) << endl;
 #endif
                 if (fileExists(completePath)) {
-                    exit(execve(completePath.c_str(), argv, getEnv()));
+                    exit(execvpe(completePath.c_str(), argv, getEnv()));
                 }
             }
             if (fileExists(argv[0])) {
-                exit(execve(argv[0], argv, getEnv()));
+                exit(execvpe(argv[0], argv, getEnv()));
             } else {
                 cerr << "Couldn't run '" << argv[0] << "'" << endl;
                 exit(COULD_NOT_RUN_BINARY);
