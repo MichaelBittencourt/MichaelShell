@@ -1,9 +1,10 @@
-#include"mshell.h"
+#include<mshell.h>
 #include<unistd.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
 #include <limits.h>
+#include <sys/wait.h>
 
 #define QTD_COMMANDS 2
 #define GET_CURRENT_PATH_ERROR 2
@@ -27,7 +28,7 @@ char * createString(const char * text) {
 MShell createMShell() {
     MShell msh;
     msh.internCommands[1] = createString("cd");
-    msh.internCommands[2] = createString("pwd");
+    msh.internCommands[2] = createString("which");
     msh.path = createString("/bin/");
     if (getcwd(msh.pwd, sizeof(msh.pwd)) == NULL) {
         exit(GET_CURRENT_PATH_ERROR);
@@ -55,12 +56,50 @@ void printMShell(MShell *msh) {
     printf("\tPrompt: '%s'\n", msh->prompt);
 }
 
+int countChars(const char * text, char c) {
+    int qtd = 0;
+    for (int i = 0; text[i] != '\0'; i++) {
+        qtd = text[i] == c ? qtd+1 : qtd;
+    }
+    return qtd;
+}
+
+char ** convertCommandToArgv(const char * command) {
+    int qtdSeparators = countChars(command, ' ');
+    char ** argv = (char**)malloc(sizeof(char*)*(qtdSeparators + 1));
+    char * pch = strtok((char*)command, " ");
+    int i = 0;
+    while (pch != NULL) {
+        argv[i] = (char*)malloc(sizeof(char)*(strlen(pch)+1));
+        strcpy(argv[i], pch);
+        pch = strtok(NULL, " ");
+        i++;
+    }
+    argv[i] = NULL;
+    return argv;
+}
+
 boolean runIntern(MShell * msh, const char *input) {
-    printf("\nRunning Intert command: %s", input);
+#ifdef DEBUG
+    char ** argv = convertCommandToArgv(input);
+    for (int i = 0; argv[i] != NULL; i++) {
+        printf("argv[%d]: %s\n", i, argv[i]);
+    }
+    printf("\nRunning Intern command: %s", input);
+#endif
+    return 1;
 }
 
 boolean runBinary(MShell * msh, const char *input) {
-    printf("\nRunning binary: %s", input);
+    char ** argv = convertCommandToArgv(input);
+    pid_t pid = fork();
+    if (pid == 0) {
+        execvp(argv[0], argv);
+    } else {
+        wait(NULL);
+        printf ("Child process finish!\n");
+    }
+    //printf("\nRunning binary: %s", input);
 }
 
 boolean runCommand(MShell * msh, const char *input) {
@@ -91,8 +130,9 @@ int runMShell(boolean paralelo) {
         }
     } while (strcmp(input, "exit"));
 
-
+#ifdef DEBUG
     printMShell(&msh);
+#endif
     deleteMShell(&msh);
     return ret;
 }

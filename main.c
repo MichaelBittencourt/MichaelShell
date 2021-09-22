@@ -12,7 +12,14 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include"mshell.h"
+#include<mshell.h>
+
+#define VERSION "0.0.1"
+
+
+void showVersion() {
+    printf("Version: %s\n", VERSION);
+}
 
 int main(int argc, char *argv[]) {
     boolean paralelo = FALSE;
@@ -20,6 +27,9 @@ int main(int argc, char *argv[]) {
         for (int i = 1; i < argc; i++) {
             if (strcmp("-p", argv[i]) == 0 || strcmp("--paralelo", argv[i]) == 0) {
                 paralelo = TRUE;
+            } if (strcmp("-v", argv[i]) == 0 || strcmp("--version", argv[i]) == 0) {
+                showVersion();
+                exit(0);
             } else {
                 printf("Wrong Param: %s\n", argv[i]);
                 exit(1);

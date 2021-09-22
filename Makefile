@@ -1,13 +1,19 @@
-all: msh
+INCLUDES=-I$(shell pwd) #-I/home/michael/src
+DEBUG=-g3
+OTIMIZATION=-O0
+SRC=$(wildcard *.c)
+OBJ=$(SRC:.c=.o)
+BIN=msh
 
-main.o: main.c
-	gcc -c $< -o $@
+FLAGS= $(INCLUDES) $(DEBUG) $(OTIMIZATION)
 
-mshell.o: mshell.c
-	gcc -c $< -o $@
+all: $(BIN)
 
-msh: main.o mshell.o
-	gcc $^ -o $@
+%.o: %.c
+	gcc -c $< -o $@ $(FLAGS) 
+
+$(BIN): $(OBJ)
+	gcc $^ -o $@ $(FLAGS)
 
 clean:
-	rm main.o mshell.o msh
+	rm $(OBJ) $(BIN)
